@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Pakar Gizi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Sistem Pakar Gizi</h1>
+        
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Data Pribadi</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="age" class="form-label">Usia</label>
+                            <input type="number" class="form-control" id="age" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="gender" class="form-label">Jenis Kelamin</label>
+                            <select class="form-control" id="gender" required>
+                                <option value="male">Laki-laki</option>
+                                <option value="female">Perempuan</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Asupan Makanan</h5>
+                <div id="foodList">
+                    <!-- Food items will be added here -->
+                </div>
+                <button class="btn btn-primary mt-3" onclick="addFood()">Tambah Makanan</button>
+            </div>
+        </div>
+
+        <button class="btn btn-success" onclick="calculate()">Hitung</button>
+
+        <div class="mt-4" id="result" style="display: none;">
+            <h3>Hasil Analisis</h3>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let foodCount = 0;
+
+        function addFood() {
+            foodCount++;
+            const foodDiv = document.createElement('div');
+            foodDiv.className = 'food-item mb-3';
+            foodDiv.innerHTML = `
+                <div class="row">
+                    <div class="col">
+                        <input type="number" step="0.01" class="form-control calories" placeholder="Kalori (kkal)" required>
+                    </div>
+                    <div class="col">
+                        <input type="number" step="0.01" class="form-control protein" placeholder="Protein (g)" required>
+                    </div>
+                    <div class="col">
+                        <input type="number" step="0.01" class="form-control fat" placeholder="Lemak (g)" required>
+                    </div>
+                    <div class="col">
+                        <input type="number" step="0.01" class="form-control carbs" placeholder="Karbohidrat (g)" required>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-danger" onclick="this.parentElement.parentElement.parentElement.remove()">Hapus</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('foodList').appendChild(foodDiv);
+        }
+
+        function calculate() {
+            const age = document.getElementById('age').value;
+            const gender = document.getElementById('gender').value;
+            
+            // Validate age
+            if (!age || age <= 0) {
+                alert('Mohon masukkan usia yang valid');
+                return;
+            }
+
+            const foods = [];
+            const foodItems = document.querySelectorAll('.food-item');
+            
+            // Validate if there are any food items
+            if (foodItems.length === 0) {
+                alert('Mohon tambahkan makanan terlebih dahulu');
+                return;
+            }
+
+            // Collect and validate food data
+            let hasEmptyFields = false;
+            foodItems.forEach(item => {
+                const calories = item.querySelector('.calories').value;
+                const protein = item.querySelector('.protein').value;
+                const fat = item.querySelector('.fat').value;
+                const carbs = item.querySelector('.carbs').value;
+
+                if (!calories || !protein || !fat || !carbs) {
+                    hasEmptyFields = true;
+                    return;
+                }
+
+                foods.push({
+                    calories: parseFloat(calories),
+                    protein: parseFloat(protein),
+                    fat: parseFloat(fat),
+                    carbs: parseFloat(carbs)
+                });
+            });
+
+            if (hasEmptyFields) {
+                alert('Mohon lengkapi semua nilai gizi makanan');
+                return;
+            }
+
+            // Make API call
+            fetch('/calculate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    age: parseInt(age),
+                    gender: gender,
+                    foods: foods
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const resultDiv = document.getElementById('result');
+                const resultContent = document.getElementById('resultContent');
+                resultDiv.style.display = 'block';
+                
+                if (data.status === 'success') {
+                    let html = `
+                        <div class="alert alert-info">
+                            <h4>Status: ${data.result}</h4>
+                            <hr>
+                            <p>Detail Perhitungan:</p>
+                            <ul>
+                                <li>Kalori: ${data.details.calories.total.toFixed(1)} / ${data.details.calories.required} kkal (${data.details.calories.percentage.toFixed(1)}%)</li>
+                                <li>Protein: ${data.details.protein.total.toFixed(1)} / ${data.details.protein.required}g (${data.details.protein.percentage.toFixed(1)}%)</li>
+                                <li>Lemak: ${data.details.fat.total.toFixed(1)} / ${data.details.fat.required}g (${data.details.fat.percentage.toFixed(1)}%)</li>
+                                <li>Karbohidrat: ${data.details.carbs.total.toFixed(1)} / ${data.details.carbs.required}g (${data.details.carbs.percentage.toFixed(1)}%)</li>
+                            </ul>
+                        </div>
+                    `;
+                    resultContent.innerHTML = html;
+                } else {
+                    resultContent.innerHTML = `<div class="alert alert-danger">Error: ${data.message}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('resultContent').innerHTML = `<div class="alert alert-danger">Terjadi kesalahan dalam perhitungan: ${error.message}</div>`;
+            });
+        }
+
+        // Add initial food input
+        addFood();
+    </script>
+</body>
+</html>
