@@ -1,180 +1,431 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Pakar Gizi</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .menu-selection {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        .food-input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #makanan {
+            min-width: 200px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .portion-input {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .portion-input input {
+            width: 80px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .selected-food-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 5px 0;
+            padding: 8px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+        .food-portion {
+            color: #666;
+            font-style: italic;
+        }
+        .remove-food {
+            color: #dc3545;
+            cursor: pointer;
+            border: none;
+            background: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .remove-food:hover {
+            background-color: #ffebee;
+        }
+        .overall-status {
+            text-align: center;
+            padding: 20px;
+            margin-top: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .overall-status h4 {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .overall-status .status-badge {
+            font-size: 1.4rem;
+            padding: 10px 25px;
+        }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <div class="container mt-5">
-        <h1 class="mb-4">Sistem Pakar Gizi</h1>
-        
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Data Pribadi</h5>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="age" class="form-label">Usia</label>
-                            <input type="number" class="form-control" id="age" required>
-                        </div>
+    <div class="container">
+        <h1>Sistem Pakar Gizi</h1>
+        <p class="description">Sistem ini akan membantu Anda menganalisis kebutuhan gizi dan memberikan rekomendasi menu makanan yang sesuai.</p>
+
+        <form id="nutritionForm">
+            <div class="form-group">
+                <label for="umur"><i class="fas fa-user"></i> Umur:</label>
+                <input type="number" id="umur" name="umur" required min="0" max="150" placeholder="Masukkan umur Anda">
+            </div>
+
+            <div class="form-group">
+                <label for="gender"><i class="fas fa-venus-mars"></i> Jenis Kelamin:</label>
+                <select id="gender" name="gender" required>
+                    <option value="">-- Pilih Jenis Kelamin --</option>
+                    <option value="pria">Pria</option>
+                    <option value="wanita">Wanita</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="berat"><i class="fas fa-weight"></i> Berat Badan (kg):</label>
+                <input type="number" id="berat" name="berat" step="0.1" min="20" max="300" required placeholder="Masukkan berat badan (20-300 kg)">
+            </div>
+
+            <div class="form-group">
+                <label for="tinggi"><i class="fas fa-ruler-vertical"></i> Tinggi Badan (cm):</label>
+                <input type="number" id="tinggi" name="tinggi" step="0.1" min="100" max="250" required placeholder="Masukkan tinggi badan (100-250 cm)">
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-utensils"></i> Pilihan Makanan:</label>
+                <div class="food-input-group">
+                    <select id="makanan" name="makanan">
+                        <option value="">-- Pilih Makanan --</option>
+                        {% for makanan in daftar_makanan %}
+                        <option value="{{ makanan }}">{{ makanan }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="portion-input">
+                        <input type="number" id="gram" placeholder="Gram" min="1">
+                        <span>gram</span>
                     </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="gender" class="form-label">Jenis Kelamin</label>
-                            <select class="form-control" id="gender" required>
-                                <option value="male">Laki-laki</option>
-                                <option value="female">Perempuan</option>
-                            </select>
-                        </div>
-                    </div>
+                    <button type="button" id="addFood" class="btn"><i class="fas fa-plus"></i> Tambah</button>
                 </div>
+                <div id="selectedFoods"></div>
+            </div>
+
+            <button type="submit" class="btn primary-btn"><i class="fas fa-calculator"></i> Hitung Kebutuhan Gizi</button>
+        </form>
+
+        <div id="loading" class="hidden">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Sedang menganalisis data Anda...</p>
             </div>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Asupan Makanan</h5>
-                <div id="foodList">
-                    <!-- Food items will be added here -->
-                </div>
-                <button class="btn btn-primary mt-3" onclick="addFood()">Tambah Makanan</button>
-            </div>
-        </div>
-
-        <button class="btn btn-success" onclick="calculate()">Hitung</button>
-
-        <div class="mt-4" id="result" style="display: none;">
-            <h3>Hasil Analisis</h3>
-            <div id="resultContent"></div>
+        <div id="result" class="hidden">
+            <h2><i class="fas fa-clipboard-list"></i> Hasil Analisis Gizi</h2>
+            <div id="output"></div>
+            <button onclick="window.print()" class="print-btn">
+                <i class="fas fa-print"></i> Cetak Hasil
+            </button>
         </div>
     </div>
 
     <script>
-        let foodCount = 0;
+        document.addEventListener("DOMContentLoaded", () => {
+            const form = document.getElementById("nutritionForm");
+            const loading = document.getElementById("loading");
+            const result = document.getElementById("result");
+            const selectedFoods = new Map(); // Changed to Map to store food and portion pairs
 
-        function addFood() {
-            foodCount++;
-            const foodDiv = document.createElement('div');
-            foodDiv.className = 'food-item mb-3';
-            foodDiv.innerHTML = `
-                <div class="row">
-                    <div class="col">
-                        <input type="number" step="0.01" class="form-control calories" placeholder="Kalori (kkal)" required>
-                    </div>
-                    <div class="col">
-                        <input type="number" step="0.01" class="form-control protein" placeholder="Protein (g)" required>
-                    </div>
-                    <div class="col">
-                        <input type="number" step="0.01" class="form-control fat" placeholder="Lemak (g)" required>
-                    </div>
-                    <div class="col">
-                        <input type="number" step="0.01" class="form-control carbs" placeholder="Karbohidrat (g)" required>
-                    </div>
-                    <div class="col-auto">
-                        <button class="btn btn-danger" onclick="this.parentElement.parentElement.parentElement.remove()">Hapus</button>
-                    </div>
-                </div>
-            `;
-            document.getElementById('foodList').appendChild(foodDiv);
-        }
+            // Load daftar makanan
+            fetch("/kategori")
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        const dropdown = document.getElementById("makanan");
+                        data.kategori.forEach(makanan => {
+                            const option = document.createElement("option");
+                            option.value = makanan;
+                            option.textContent = makanan;
+                            dropdown.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError("Gagal memuat daftar makanan");
+                });
 
-        function calculate() {
-            const age = document.getElementById('age').value;
-            const gender = document.getElementById('gender').value;
-            
-            // Validate age
-            if (!age || age <= 0) {
-                alert('Mohon masukkan usia yang valid');
-                return;
+            // Tambah makanan yang dipilih
+            document.getElementById("addFood").addEventListener("click", () => {
+                const select = document.getElementById("makanan");
+                const selectedFood = select.value;
+                const portion = parseFloat(document.getElementById("gram").value);
+                
+                if (selectedFood && !selectedFoods.has(selectedFood) && portion > 0) {
+                    selectedFoods.set(selectedFood, portion);
+                    const foodDiv = document.createElement("div");
+                    foodDiv.className = "selected-food-item";
+                    foodDiv.innerHTML = `
+                        <span>${selectedFood} <em>(${portion} gram)</em></span>
+                        <button type="button" class="remove-btn" data-food="${selectedFood}">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    document.getElementById("selectedFoods").appendChild(foodDiv);
+                }
+            });
+
+            // Hapus makanan yang dipilih
+            document.getElementById("selectedFoods").addEventListener("click", (e) => {
+                if (e.target.closest(".remove-btn")) {
+                    const foodToRemove = e.target.closest(".remove-btn").dataset.food;
+                    selectedFoods.delete(foodToRemove);
+                    e.target.closest(".selected-food-item").remove();
+                }
+            });
+
+            function showError(message) {
+                const output = document.getElementById("output");
+                output.innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>${message}</p>
+                    </div>`;
+                result.classList.remove("hidden");
+                loading.classList.add("hidden");
             }
 
-            const foods = [];
-            const foodItems = document.querySelectorAll('.food-item');
-            
-            // Validate if there are any food items
-            if (foodItems.length === 0) {
-                alert('Mohon tambahkan makanan terlebih dahulu');
-                return;
+            function formatNutritionValue(value, unit) {
+                return `${parseFloat(value).toFixed(1)} ${unit}`;
             }
 
-            // Collect and validate food data
-            let hasEmptyFields = false;
-            foodItems.forEach(item => {
-                const calories = item.querySelector('.calories').value;
-                const protein = item.querySelector('.protein').value;
-                const fat = item.querySelector('.fat').value;
-                const carbs = item.querySelector('.carbs').value;
+            function getStatusColor(status) {
+                switch(status.toLowerCase()) {
+                    case 'kurang':
+                        return 'status-low';
+                    case 'berlebih':
+                        return 'status-high';
+                    case 'cukup':
+                    case 'normal':
+                        return 'status-normal';
+                    default:
+                        return '';
+                }
+            }
 
-                if (!calories || !protein || !fat || !carbs) {
-                    hasEmptyFields = true;
+            function getOverallNutritionStatus(comparisons) {
+                let deficientCount = 0;
+                let excessCount = 0;
+                let normalCount = 0;
+
+                for (const info of Object.values(comparisons)) {
+                    switch(info.status.toLowerCase()) {
+                        case 'kurang':
+                            deficientCount++;
+                            break;
+                        case 'berlebih':
+                            excessCount++;
+                            break;
+                        case 'cukup':
+                        case 'normal':
+                            normalCount++;
+                            break;
+                    }
+                }
+
+                if (deficientCount >= 2) {
+                    return { status: 'Gizi Kurang', class: 'status-low' };
+                } else if (excessCount >= 2) {
+                    return { status: 'Gizi Berlebih', class: 'status-high' };
+                } else {
+                    return { status: 'Gizi Cukup', class: 'status-normal' };
+                }
+            }
+
+            form.addEventListener("submit", function(e) {
+                e.preventDefault();
+                
+                if (selectedFoods.size === 0) {
+                    showError("Silakan pilih minimal satu makanan");
                     return;
                 }
 
-                foods.push({
-                    calories: parseFloat(calories),
-                    protein: parseFloat(protein),
-                    fat: parseFloat(fat),
-                    carbs: parseFloat(carbs)
+                loading.classList.remove("hidden");
+                result.classList.add("hidden");
+
+                // Convert selected foods map to array of objects with food and portion
+                const selectedFoodsArray = Array.from(selectedFoods).map(([food, portion]) => ({
+                    nama: food,
+                    porsi: portion
+                }));
+
+                const formData = {
+                    umur: parseInt(document.getElementById("umur").value),
+                    gender: document.getElementById("gender").value,
+                    makanan: selectedFoodsArray,
+                    berat: parseFloat(document.getElementById("berat").value) || 0,
+                    tinggi: parseFloat(document.getElementById("tinggi").value) || 0
+                };
+
+                fetch("/calculate", {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(formData)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    loading.classList.add("hidden");
+                    const output = document.getElementById("output");
+                    
+                    if (data.status === "success") {
+                        let html = `
+                            <div class="result-section">
+                                <h3><i class="fas fa-utensils"></i> Makanan Yang Dipilih</h3>
+                                <div class="total-nutrition">
+                                    <h4>Total Asupan Gizi:</h4>
+                                    <div class="nutrition-grid">
+                                        <div class="nutrition-item">
+                                            <i class="fas fa-fire"></i>
+                                            <span>Kalori</span>
+                                            <strong>${formatNutritionValue(data.data.asupan_saat_ini.kalori, 'kkal')}</strong>
+                                        </div>
+                                        <div class="nutrition-item">
+                                            <i class="fas fa-drumstick-bite"></i>
+                                            <span>Protein</span>
+                                            <strong>${formatNutritionValue(data.data.asupan_saat_ini.protein, 'g')}</strong>
+                                        </div>
+                                        <div class="nutrition-item">
+                                            <i class="fas fa-oil-can"></i>
+                                            <span>Lemak</span>
+                                            <strong>${formatNutritionValue(data.data.asupan_saat_ini.lemak, 'g')}</strong>
+                                        </div>
+                                        <div class="nutrition-item">
+                                            <i class="fas fa-bread-slice"></i>
+                                            <span>Karbohidrat</span>
+                                            <strong>${formatNutritionValue(data.data.asupan_saat_ini.karbohidrat, 'g')}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="selected-foods-list">`;
+                        
+                        data.data.makanan_dipilih.forEach(makanan => {
+                            html += `
+                                <div class="food-item">
+                                    <h4>${makanan.Makanan} <span class="portion-badge">${makanan.Porsi} porsi</span></h4>
+                                    <p><i class="fas fa-fire"></i> Kalori: ${formatNutritionValue(makanan.Kalori, 'kkal')}</p>
+                                    <p><i class="fas fa-drumstick-bite"></i> Protein: ${formatNutritionValue(makanan.Protein, 'g')}</p>
+                                    <p><i class="fas fa-oil-can"></i> Lemak: ${formatNutritionValue(makanan.Lemak, 'g')}</p>
+                                    <p><i class="fas fa-bread-slice"></i> Karbohidrat: ${formatNutritionValue(makanan.Karbohidrat, 'g')}</p>
+                                </div>`;
+                        });
+                        html += `</div></div>`;
+
+                        // Tampilkan perbandingan gizi
+                        html += `
+                            <div class="result-section">
+                                <h3><i class="fas fa-chart-pie"></i> Perbandingan Asupan Gizi dengan Kebutuhan</h3>
+                                <div class="nutrition-comparison">`;
+
+                        for (const [nutrient, info] of Object.entries(data.data.perbandingan_gizi)) {
+                            const statusClass = getStatusColor(info.status);
+                            const icon = {
+                                'kalori': 'fire',
+                                'protein': 'drumstick-bite',
+                                'lemak': 'oil-can',
+                                'karbohidrat': 'bread-slice',
+                                'serat': 'leaf'
+                            }[nutrient] || 'info-circle';
+
+                            html += `
+                                <div class="nutrient-comparison ${statusClass}">
+                                    <h4><i class="fas fa-${icon}"></i> ${nutrient.charAt(0).toUpperCase() + nutrient.slice(1)}</h4>
+                                    <div class="comparison-details">
+                                        <div class="progress-container">
+                                            <div class="progress-info">
+                                                <p><strong>Asupan:</strong> ${formatNutritionValue(info.nilai_saat_ini, info.unit)}</p>
+                                                <p><strong>Kebutuhan:</strong> ${formatNutritionValue(info.nilai_kebutuhan, info.unit)}</p>
+                                            </div>
+                                            <div class="progress-bar">
+                                                <div class="progress" style="width: ${Math.min(info.persentase, 150)}%"></div>
+                                            </div>
+                                            <p class="percentage"><strong>${info.persentase}%</strong> dari kebutuhan</p>
+                                        </div>
+                                        <div class="status-badge ${statusClass}">
+                                            ${info.status.toUpperCase()}
+                                        </div>
+                                        <div class="recommendations">
+                                            ${info.rekomendasi.map(rec => `
+                                                <p><i class="fas fa-check"></i> ${rec}</p>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                </div>`;
+                        }
+                        
+                        // Calculate overall nutrition status
+                        const overallStatus = getOverallNutritionStatus(data.data.perbandingan_gizi);
+                        html += `</div>
+                            <div class="overall-status ${overallStatus.class}">
+                                <h4><i class="fas fa-clipboard-check"></i> Kesimpulan Status Gizi</h4>
+                                <div class="status-badge ${overallStatus.class}">
+                                    ${overallStatus.status}
+                                </div>
+                            </div>
+                        </div>`;
+
+                        // Tampilkan BMI jika tersedia
+                        if (data.data.bmi) {
+                            html += `
+                                <div class="result-section">
+                                    <h3><i class="fas fa-weight-scale"></i> Indeks Massa Tubuh (BMI)</h3>
+                                    <div class="bmi-info">
+                                        <div class="bmi-value">
+                                            <span class="value">${data.data.bmi.nilai}</span>
+                                            <span class="label">${data.data.bmi.status}</span>
+                                        </div>
+                                        <div class="bmi-recommendations">
+                                            ${data.data.bmi.rekomendasi.map(rec => `
+                                                <p><i class="fas fa-check"></i> ${rec}</p>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                </div>`;
+                        }
+
+                        output.innerHTML = html;
+                        result.classList.remove("hidden");
+                        result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    } else {
+                        showError(data.message || "Terjadi kesalahan dalam memproses data");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError("Terjadi kesalahan dalam memproses permintaan");
                 });
             });
-
-            if (hasEmptyFields) {
-                alert('Mohon lengkapi semua nilai gizi makanan');
-                return;
-            }
-
-            // Make API call
-            fetch('/calculate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    age: parseInt(age),
-                    gender: gender,
-                    foods: foods
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                const resultDiv = document.getElementById('result');
-                const resultContent = document.getElementById('resultContent');
-                resultDiv.style.display = 'block';
-                
-                if (data.status === 'success') {
-                    let html = `
-                        <div class="alert alert-info">
-                            <h4>Status: ${data.result}</h4>
-                            <hr>
-                            <p>Detail Perhitungan:</p>
-                            <ul>
-                                <li>Kalori: ${data.details.calories.total.toFixed(1)} / ${data.details.calories.required} kkal (${data.details.calories.percentage.toFixed(1)}%)</li>
-                                <li>Protein: ${data.details.protein.total.toFixed(1)} / ${data.details.protein.required}g (${data.details.protein.percentage.toFixed(1)}%)</li>
-                                <li>Lemak: ${data.details.fat.total.toFixed(1)} / ${data.details.fat.required}g (${data.details.fat.percentage.toFixed(1)}%)</li>
-                                <li>Karbohidrat: ${data.details.carbs.total.toFixed(1)} / ${data.details.carbs.required}g (${data.details.carbs.percentage.toFixed(1)}%)</li>
-                            </ul>
-                        </div>
-                    `;
-                    resultContent.innerHTML = html;
-                } else {
-                    resultContent.innerHTML = `<div class="alert alert-danger">Error: ${data.message}</div>`;
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                document.getElementById('resultContent').innerHTML = `<div class="alert alert-danger">Terjadi kesalahan dalam perhitungan: ${error.message}</div>`;
-            });
-        }
-
-        // Add initial food input
-        addFood();
+        });
     </script>
 </body>
 </html>
