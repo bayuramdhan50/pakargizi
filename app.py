@@ -101,16 +101,17 @@ def calculate():
         
         for item in makanan_dengan_porsi:
             food_name = item['nama']
-            portion = float(item['porsi'])
+            gram_amount = float(item['porsi'])  # Read the value as grams instead of portion
             
             food_data = df[df['Makanan'] == food_name].iloc[0].copy()
-            # Multiply nutritional values by portion
+            # Multiply nutritional values by gram amount (100g is the base in the database)
             for nutrient in ['Kalori', 'Protein', 'Lemak', 'Karbohidrat', 'Serat']:
                 if nutrient in food_data:
-                    food_data[nutrient] *= portion
+                    # Convert to per-gram value, then multiply by the actual grams
+                    food_data[nutrient] = (food_data[nutrient] / 100) * gram_amount
                     total_nutrition[nutrient.lower()] += food_data[nutrient]
             
-            food_data['Porsi'] = portion
+            food_data['Gram'] = gram_amount  # Store as grams, not portions
             selected_foods_list.append(food_data.to_dict())
 
         # Compare nutrition with daily requirements

@@ -272,10 +272,10 @@
                 loading.classList.remove("hidden");
                 result.classList.add("hidden");
 
-                // Convert selected foods map to array of objects with food and portion
-                const selectedFoodsArray = Array.from(selectedFoods).map(([food, portion]) => ({
+                // Convert selected foods map to array of objects with food and gram amount
+                const selectedFoodsArray = Array.from(selectedFoods).map(([food, gramAmount]) => ({
                     nama: food,
-                    porsi: portion
+                    porsi: gramAmount  // Keep parameter name as 'porsi' for backend compatibility
                 }));
 
                 const formData = {
@@ -332,7 +332,7 @@
                         data.data.makanan_dipilih.forEach(makanan => {
                             html += `
                                 <div class="food-item">
-                                    <h4>${makanan.Makanan} <span class="portion-badge">${makanan.Porsi} porsi</span></h4>
+                                    <h4>${makanan.Makanan} <span class="portion-badge">${makanan.Gram} gram</span></h4>
                                     <p><i class="fas fa-fire"></i> Kalori: ${formatNutritionValue(makanan.Kalori, 'kkal')}</p>
                                     <p><i class="fas fa-drumstick-bite"></i> Protein: ${formatNutritionValue(makanan.Protein, 'g')}</p>
                                     <p><i class="fas fa-oil-can"></i> Lemak: ${formatNutritionValue(makanan.Lemak, 'g')}</p>
