@@ -32,7 +32,7 @@ Sistem pakar yang membantu pengguna menilai status gizi mereka dan memberikan re
 
 1. Clone repositori ini:
 ```bash
-git clone [url-repositori]
+git clone https://github.com/bayuramdhan50/pakargizi.git
 ```
 
 2. Pindah ke direktori proyek:
